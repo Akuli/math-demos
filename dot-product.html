@@ -6,12 +6,6 @@
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-<style>
-canvas {
-  display: block;
-}
-</style>
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('canvas');
@@ -151,9 +145,10 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </head>
 <body>
-<canvas id="canvas" width=500 height=200></canvas>
+<div><canvas id="canvas" width=500 height=200></canvas></div>
 
-The above animation shows two ways to think about the dot product of two vectors \(\vec v\) and \(\vec w\):
+<p>
+The above animation shows two ways to understand the dot product of two vectors \(\vec v\) and \(\vec w\):
 <ul>
 <li>
 First rotate \(\vec w\) by 90 degrees,
@@ -168,7 +163,9 @@ Then \(\vec v \cdot \vec w = x |\vec v|\),
 where \(|\vec v|\) denotes length of the vector \(\vec v\).
 </li>
 </ul>
+</p>
 
+<p>
 Starting with either one of these geometric definitions,
 it's possible to derive the usual formulas
 $$
@@ -180,5 +177,12 @@ $$
 $$
 where \(a,b,x,y \in \mathbb{R}\) are components of vectors in directions of \(x\) and \(y\) axises,
 and \(\alpha \in \mathbb{R}\) is the angle between \(\vec v\) and \(\vec w\).
+</p>
+
+<p>
+Applying these formulas with \(\vec v = \vec w = a\hat i +b \hat j=x\hat i + y\hat j\)
+leads to a proof of the Pythagorean theorem.
+</p>
+
 </body>
 </html>
