@@ -1,5 +1,3 @@
-# Math Demos
-
 This site contains visualizations of math concepts.
 Here's a list of them:
 
