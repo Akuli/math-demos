@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<!-- mathjax stuff -->
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<style>
+canvas {
+  display: block;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const canvas = document.getElementById('canvas');
+  const context = canvas.getContext('2d');
+
+  context.translate(100, 100);
+
+  function vectorLength(vec) {
+    return Math.hypot(vec[0], vec[1]);
+  }
+
+  function addVectors(vec1, vec2) {
+    const [x1, y1] = vec1;
+    const [x2, y2] = vec2;
+    return [x1+x2, y1+y2];
+  }
+
+  function subtractVectors(vec1, vec2) {
+    return addVectors(vec1, vec2.map(x => -x));
+  }
+
+  function averageVector(vec1, vec2) {
+    return addVectors(vec1, vec2).map(x => x/2);
+  }
+
+  function unitVector(vec) {
+    return vec.map(x => x / Math.hypot(vec[0], vec[1]));
+  }
+
+  function rotateVector(vec, rotationAngle) {
+    const currentAngle = Math.atan2(vec[1], vec[0]);
+    const newAngle = currentAngle + rotationAngle;
+    const length = vectorLength(vec);
+    return [length*Math.cos(newAngle), length*Math.sin(newAngle)];
+  }
+
+  function createLinePath(start, end) {
+    const path = new Path2D();
+    path.moveTo(...start);
+    path.lineTo(...end);
+    return path
+  }
+
+  function createVectorPath(vec) {
+    const path = createLinePath([0, 0], vec);
+    const arrowThing = unitVector(vec).map(x => x * 10);
+
+    for (const angle of [ -Math.PI * 3/4, Math.PI * 3/4 ]) {
+      const arrowLineEnd = addVectors(vec, rotateVector(arrowThing, angle));
+      path.moveTo(...vec);
+      path.lineTo(...arrowLineEnd);
+    }
+
+    return path;
+  }
+
+  function createParallelogramPath(vec1, vec2) {
+    const path = new Path2D();
+
+    path.moveTo(0, 0);
+    path.lineTo(...vec1);
+    path.lineTo(...addVectors(vec1, vec2));
+    path.lineTo(...vec2);
+    path.lineTo(0, 0);
+
+    return path;
+  }
+
+  function dotProduct(vector1, vector2) {
+    const [x1, y1] = vector1;
+    const [x2, y2] = vector2;
+    return x1*x2 + y1*y2;
+  }
+
+  function round(floatValue, howManyDecimals) {
+    const magicNumber = Math.pow(10, howManyDecimals);
+    return Math.round(floatValue * magicNumber) / magicNumber + '';
+  }
+
+  const fixedVector = [200, 0];
+
+  function drawAllTheThings() {
+    context.clearRect(-1000, -1000, 2000, 2000);
+
+    const spinner = rotateVector([80, 0], -(+new Date()) / 2e3);
+    const spinnerRotated90 = rotateVector(spinner, Math.PI / 2);
+
+    const projectionLength = dotProduct(fixedVector, spinner) / vectorLength(fixedVector);
+    const projectionVector = unitVector(fixedVector).map(x => x * projectionLength);
+
+    if (dotProduct(fixedVector, spinner) > 0) {
+      context.fillStyle = '#990';
+    } else {
+      context.fillStyle = '#339';
+    }
+    context.fill(createParallelogramPath(fixedVector, spinnerRotated90));
+
+    // dot product is huge because pixel counts are big
+    // so scale it down to make it more user-friendly
+    const userFriendlyDotProductValue = dotProduct(fixedVector, spinner) / 7000;
+
+    context.fillStyle = '#fff';
+    context.textAlign = 'start';
+    context.fillText(
+      "v⋅w = x|v| = " + round(userFriendlyDotProductValue, 2),
+      ...averageVector(fixedVector, spinnerRotated90));
+
+    context.stroke(createVectorPath(fixedVector));
+    context.stroke(createVectorPath(spinner));
+
+    context.fillStyle = '#000';
+
+    context.textAlign = 'start';
+    context.fillText("  v", ...fixedVector);
+    context.fillText("  w", ...spinner);
+
+    context.setLineDash([5, 5]);
+    context.stroke(createLinePath(projectionVector, spinner));
+
+    const xSignTextLocation = averageVector([0, 0], projectionVector);
+    xSignTextLocation[1] += 10;
+    context.textAlign = 'center';
+
+    if (dotProduct(fixedVector, spinner) > 0) {
+      context.fillText("x > 0", ...xSignTextLocation);
+    } else {
+      context.stroke(createLinePath([0, 0], projectionVector));
+      context.fillText("x < 0", ...xSignTextLocation);
+    }
+    context.setLineDash([]);
+
+    window.requestAnimationFrame(drawAllTheThings);
+  }
+
+  drawAllTheThings();
+});
+</script>
+</head>
+<body>
+<canvas id="canvas" width=500 height=200></canvas>
+
+The above animation shows two ways to think about the dot product of two vectors \(\vec v\) and \(\vec w\):
+<ul>
+<li>
+First rotate \(\vec w\) by 90 degrees,
+then draw a parallelogram with \(\vec v\) and rotated \(\vec w\) as sides.
+Now the dot product \(\vec v \cdot \vec w\) is the area of this parallelogram,
+with minus sign in front if the vectors are pointing "apart" from each other.
+</li>
+<li>
+Project \(\vec w\) on \(\vec v\), and let \(x \in \mathbb{R} \) denote the projection,
+negative if \(\vec v\) had to be "extended" to the other side for doing the projection.
+Then \(\vec v \cdot \vec w = x |\vec v|\),
+where \(|\vec v|\) denotes length of the vector \(\vec v\).
+</li>
+</ul>
+
+Starting with either one of these geometric definitions,
+it's possible to derive the usual formulas
+$$
+(a\hat i + b\hat j) \cdot (x\hat i + y\hat j) = ax+by
+$$
+and
+$$
+\vec v \cdot \vec w = |\vec v| |\vec w| \cos(\alpha),
+$$
+where \(a,b,x,y \in \mathbb{R}\) are components of vectors in directions of \(x\) and \(y\) axises,
+and \(\alpha \in \mathbb{R}\) is the angle between \(\vec v\) and \(\vec w\).
+</body>
+</html>
