@@ -1,4 +1,4 @@
 This site contains visualizations of math concepts.
 Here's a list of them:
 
-- [Dot product](dot-product.html)
+- [Dot product](https://akuli.github.io/math-demos/dot-product.html)
