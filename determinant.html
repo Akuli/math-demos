@@ -184,8 +184,8 @@ document.addEventListener('DOMContentLoaded', () => {
     context.fillStyle = '#000';
     context.textBaseline = 'top';
 
-    context.fillText("  ai+bj", ...fixedVector);
-    context.fillText("  ci+dj", ...spinner);
+    context.fillText("  a", ...fixedVector);
+    context.fillText("  b", ...spinner);
 
     setTextLocation('det-text-container-2by2', averageVector(fixedVector, spinner));
     document.getElementById('det-text-2by2').textContent = round(userFriendlyDetValue, 2);
@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
     scene.add(new THREE.ArrowHelper(direction, new THREE.Vector3(0,0,0), endPoint.length(), color, undefined, 0.15));
   }
 
-  function drawParallelogram(vector1, vector2, offsetVector) {
+  function drawParallelogram(vector1, vector2, offsetVector, color) {
     const crossProduct = (new THREE.Vector3()).copy(vector1).cross(vector2);
 
     var unitSquare = new THREE.Shape();
@@ -247,22 +247,35 @@ document.addEventListener('DOMContentLoaded', () => {
       offsetVector.x, offsetVector.y, offsetVector.z));
 
     scene.add(new THREE.Mesh(parallelogramGeometry, new THREE.MeshBasicMaterial({
-      color: 0xff00ff,
+      color: color,
       transparent: true,
       opacity: 0.4,
       side: THREE.DoubleSide,
     })));
   }
 
+  function drawOrbitCircle(radius) {
+    const unitCircle = new THREE.Shape();
+    unitCircle.arc(0, 0, radius, 0, 2*Math.PI);
+    console.log(unitCircle);
+
+    const orbitGeometry = new THREE.ShapeGeometry(unitCircle, 100);
+    scene.add(new THREE.LineSegments(orbitGeometry,
+      new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+    })));
+  }
+
   function drawParallelepiped(vector1, vector2, vector3) {
     // faces
     const zero = new THREE.Vector3();
-    drawParallelogram(vector1, vector2, zero);
-    drawParallelogram(vector1, vector3, zero);
-    drawParallelogram(vector2, vector3, zero);
-    drawParallelogram(vector1, vector2, vector3);
-    drawParallelogram(vector2, vector3, vector1);
-    drawParallelogram(vector3, vector1, vector2);
+    const color = 0xff00ff;
+    drawParallelogram(vector1, vector2, zero, color);
+    drawParallelogram(vector1, vector3, zero, color*0.9);
+    drawParallelogram(vector2, vector3, zero, color*0.8);
+    drawParallelogram(vector1, vector2, vector3, color*0.7);
+    drawParallelogram(vector2, vector3, vector1, color*0.6);
+    drawParallelogram(vector3, vector1, vector2, color*0.5);
 
     var parallelogramGeometry = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(1,1,1));
 
@@ -313,6 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
     drawArrow(fixedVector2, 0xff0000);
     drawArrow(movingVector, 0x00cc00);
     drawParallelepiped(fixedVector1, fixedVector2, movingVector);
+    //drawOrbitCircle(movingVector.length());
 
     movingVector.applyMatrix4(new THREE.Matrix4().makeRotationZ(0.005));
 
@@ -345,21 +359,20 @@ document.addEventListener('DOMContentLoaded', () => {
   <canvas id="canvas-2by2" width=500 height=250></canvas>
   <div class="container-text" id="det-text-container-2by2">
     \(\det\left[ \begin{matrix}
-      a & b \\
-      c & d
+      a_x & a_y \\
+      b_x & b_y
     \end{matrix}\right] = \) <span id="det-text-2by2"></span>
   </div>
 </div>
 
 <p>
-On this page, \(\hat i\), \(\hat j\) and \(\hat k\) denote the standard basis vectors.
-If there is a vector named \( \vec v \), then \( v_x \) denotes the \(x\) component of that vector,
-and similarly for \( v_y \) and \( v_z \).
+If there is a vector named \( \vec v \) on this page,
+then \(v_x\), \(v_y\) and \(v_z\) denote the x, y and z components of that vector.
 <p>
 
 <p>
 The above animation shows a geometric way to understand a \( 2 \times 2 \) determinant.
-Draw the vectors corresponding to the first and second row of the determinant.
+Draw the vectors \(\vec a\) and \(\vec b\) corresponding to the first and second row of the determinant.
 Then draw a parallelogram with the vectors as sides.
 Now the determinant is plus or minus the area between the vectors.
 </p>
