@@ -21,8 +21,8 @@
 }
 
 /* making these fixed size gets rid of weird issues */
-#det-text-container-2by2 { width: 150px; }
-#det-text-container-3by3 { width: 200px; }
+#det-text-container-2by2 { width: 10em; }
+#det-text-container-3by3 { width: 15em; }
 
 /* didn't want to figure out how to make stuff off-centered */
 #container-3by3 {
@@ -252,11 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
       opacity: 0.4,
       side: THREE.DoubleSide,
     })));
-
-    /*scene.add(new THREE.Mesh(parallelogramGeometry, new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      wireframe: true,
-    })));*/
   }
 
   function drawParallelepiped(vector1, vector2, vector3) {
@@ -278,24 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // third unit vector to cross product (wouldn't matter as long as resulting matrix is invertible)
     parallelogramGeometry.applyMatrix(new THREE.Matrix4().makeBasis(vector1, vector2, vector3));
     
-
-    /*// move it to the right place
-    parallelogramGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(
-      vector3.x/2, vector3.y/2, vector3.z/2));*/
-
-    /*scene.add(new THREE.Mesh(parallelogramGeometry, new THREE.MeshBasicMaterial({
-      color: 0xff00ff,
-      transparent: true,
-      opacity: 0.4,
-      side: THREE.DoubleSide,
-    })));
-    */
-
-    /*scene.add(new THREE.Mesh(parallelogramGeometry, new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      wireframe: true,
-    })));*/
-
     scene.add(new THREE.LineSegments(parallelogramGeometry,
       new THREE.MeshBasicMaterial({
       color: 0x000000,
