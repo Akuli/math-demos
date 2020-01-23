@@ -20,12 +20,21 @@
   z-index: 123;
 }
 
+/* making these fixed size gets rid of weird issues */
+#det-text-container-2by2 { width: 150px; }
+#det-text-container-3by3 { width: 200px; }
+
+/* didn't want to figure out how to make stuff off-centered */
+#container-3by3 {
+  transform: translateX(-40%);
+}
+
 /*
 center in y direction, leave room for numbers in x direction
 ik this is weird but i had issues with doing this otherwise
 */
-#det-text-container {
-  transform: translateX(-100%) translateY(-50%);
+#det-text-container-2by2 {
+  transform: translateX(-50%) translateY(-50%);
 }
 
 </style>
@@ -178,11 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
     context.fillText("  ai+bj", ...fixedVector);
     context.fillText("  ci+dj", ...spinner);
 
-    context.fillStyle = '#fff';
-    context.textBaseline = 'middle';
-
-    context.fillText(' ' + round(userFriendlyDetValue, 2), ...averageVector(fixedVector, spinner));
-    setTextLocation('det-text-container', averageVector(fixedVector, spinner));
+    setTextLocation('det-text-container-2by2', averageVector(fixedVector, spinner));
+    document.getElementById('det-text-2by2').textContent = round(userFriendlyDetValue, 2);
  
     window.requestAnimationFrame(drawAllTheThings);
   }
@@ -193,20 +199,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- 3 by 3 determinant -->
 
-<!--
 <script>
-const WIDTH = 500;
-const HEIGHT = 300;
-const CORNER_SIZE = 0.3;
-
 document.addEventListener('DOMContentLoaded', () => {
-  const fixedVector = (new THREE.Vector3(0, 0, 5)).multiplyScalar(0.3);
-  const movingVector = (new THREE.Vector3(5, 0, 5)).multiplyScalar(0.2);
+  const WIDTH = 1000;
+  const HEIGHT = 500;
+
+  const fixedVector1 = (new THREE.Vector3(-1.5, 0, -3)).multiplyScalar(1);   // blue
+  const fixedVector2 = (new THREE.Vector3(-1, 0, 1)).multiplyScalar(2);   // red
+  const movingVector = (new THREE.Vector3(0, 1, 0)).multiplyScalar(1.5);
 
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(14, WIDTH / HEIGHT, 1, 10000);
-  camera.position.set(10, 6, -10);
+  camera.position.set(0, 5, -20);
   camera.lookAt(scene.position);
   camera.updateMatrix();
 
@@ -221,40 +226,81 @@ document.addEventListener('DOMContentLoaded', () => {
     scene.add(new THREE.ArrowHelper(direction, new THREE.Vector3(0,0,0), endPoint.length(), color, undefined, 0.15));
   }
 
-  function draw90DegreeMark(vector1, vector2) {
-    // ==0 with floats doesn't do the right thing
-    const shouldBeAlmostZero = vector1.dot(vector2);
-    if (Math.abs(shouldBeAlmostZero) > 0.0000001) {
-      throw new Error("attempt to draw |_ symbol in a non-90-degree corner");
-    }
+  function drawParallelogram(vector1, vector2, offsetVector) {
+    const crossProduct = (new THREE.Vector3()).copy(vector1).cross(vector2);
 
-    const startPoint = (new THREE.Vector3()).copy(vector1).setLength(CORNER_SIZE);
-    const endPoint   = (new THREE.Vector3()).copy(vector2).setLength(CORNER_SIZE);
-    const middlePoint = (new THREE.Vector3()).addVectors(startPoint, endPoint);
+    var unitSquare = new THREE.Shape();
+    unitSquare.moveTo(0, 0);
+    unitSquare.lineTo(1, 0);
+    unitSquare.lineTo(1, 1);
+    unitSquare.lineTo(0, 1);
+    unitSquare.lineTo(0, 0);
 
-    const geometry = new THREE.Geometry();
-    geometry.vertices.push(startPoint);
-    geometry.vertices.push(middlePoint);
-    geometry.vertices.push(endPoint);
+    var parallelogramGeometry = new THREE.ShapeGeometry(unitSquare);
 
-    scene.add(new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0xffffff })));
+    // this matrix maps unit square to vector1,vector2 parallelogram
+    // third unit vector to cross product (wouldn't matter as long as resulting matrix is invertible)
+    parallelogramGeometry.applyMatrix(new THREE.Matrix4().makeBasis(vector1, vector2, crossProduct));
+
+    // move it to the right place
+    parallelogramGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(
+      offsetVector.x, offsetVector.y, offsetVector.z));
+
+    scene.add(new THREE.Mesh(parallelogramGeometry, new THREE.MeshBasicMaterial({
+      color: 0xff00ff,
+      transparent: true,
+      opacity: 0.4,
+      side: THREE.DoubleSide,
+    })));
+
+    /*scene.add(new THREE.Mesh(parallelogramGeometry, new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      wireframe: true,
+    })));*/
   }
 
   function drawParallelepiped(vector1, vector2, vector3) {
-    const parallelepipedGeometry = new THREE.BoxGeometry(1, 1, 1);
-    parallelepipedGeometry.vertices[0].y += 2;
-    /*parallelepipedGeometry.applyMatrix(new THREE.Matrix3().set(
-      vector1.x, vector2.x, vector3.x,
-      vector1.y, vector2.y, vector3.y,
-      vector1.z, vector2.z, vector3.z,
-    ));*/
+    // faces
+    const zero = new THREE.Vector3();
+    drawParallelogram(vector1, vector2, zero);
+    drawParallelogram(vector1, vector3, zero);
+    drawParallelogram(vector2, vector3, zero);
+    drawParallelogram(vector1, vector2, vector3);
+    drawParallelogram(vector2, vector3, vector1);
+    drawParallelogram(vector3, vector1, vector2);
 
-    scene.add(new THREE.Mesh(parallelepipedGeometry, new THREE.MeshBasicMaterial({
+    var parallelogramGeometry = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(1,1,1));
+
+    // move it to the right place
+    parallelogramGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(0.5,0.5,0.5));
+
+    // this matrix maps unit square to vector1,vector2 parallelogram
+    // third unit vector to cross product (wouldn't matter as long as resulting matrix is invertible)
+    parallelogramGeometry.applyMatrix(new THREE.Matrix4().makeBasis(vector1, vector2, vector3));
+    
+
+    /*// move it to the right place
+    parallelogramGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(
+      vector3.x/2, vector3.y/2, vector3.z/2));*/
+
+    /*scene.add(new THREE.Mesh(parallelogramGeometry, new THREE.MeshBasicMaterial({
       color: 0xff00ff,
-      //transparent: true,
-      //opacity: 0.7,
-      //side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.4,
+      side: THREE.DoubleSide,
     })));
+    */
+
+    /*scene.add(new THREE.Mesh(parallelogramGeometry, new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      wireframe: true,
+    })));*/
+
+    scene.add(new THREE.LineSegments(parallelogramGeometry,
+      new THREE.MeshBasicMaterial({
+      color: 0x000000,
+    })));
+
   }
 
   function setTextLocation(elementId, vector) {
@@ -269,25 +315,43 @@ document.addEventListener('DOMContentLoaded', () => {
     div.style.top = y + 'px';
   }
 
+  function averageVector(vectorArray) {
+    const result = new THREE.Vector3();
+    for (const v of vectorArray) {
+      result.add(v);
+    }
+    return result.divideScalar(vectorArray.length);
+  }
+
+  function round(floatValue, howManyDecimals) {
+    const magicNumber = Math.pow(10, howManyDecimals);
+    return Math.round(floatValue * magicNumber) / magicNumber + '';
+  }
+
   function render() {
     // clear everything
     scene.children.map(object => object.id).forEach(id => scene.remove(scene.getObjectById(id)));
 
-    const crossProduct = (new THREE.Vector3()).copy(fixedVector).cross(movingVector);
-    drawArrow(fixedVector, 0x6666ff);
-    drawArrow(movingVector, 0xff0000);
-    drawArrow(crossProduct, 0xcc00cc);
-    drawParallelepiped(fixedVector, movingVector, (new THREE.Vector3()).copy(fixedVector).cross(movingVector));
+    drawArrow(fixedVector1, 0x6666ff);
+    drawArrow(fixedVector2, 0xff0000);
+    drawArrow(movingVector, 0x00cc00);
+    drawParallelepiped(fixedVector1, fixedVector2, movingVector);
 
-    movingVector.applyMatrix4(new THREE.Matrix4().makeRotationY(0.005));
+    movingVector.applyMatrix4(new THREE.Matrix4().makeRotationZ(0.005));
 
     renderer.render(scene, camera);
 
-    const parallelogramCenter = new THREE.Vector3().addVectors(fixedVector, movingVector).multiplyScalar(0.5);
-    //setTextLocation('fixed-vector-text', fixedVector);
-    //setTextLocation('moving-vector-text', movingVector);
-    //setTextLocation('cross-product-text', crossProduct);
-    //setTextLocation('parallelogram-text', parallelogramCenter);
+    const detValue = (new THREE.Matrix3()).set(
+      fixedVector1.x, fixedVector1.y, fixedVector1.z,
+      fixedVector2.x, fixedVector2.y, fixedVector2.z,
+      movingVector.x, movingVector.y, movingVector.z,
+    ).determinant()
+
+    setTextLocation('fixed-vector-1-text', fixedVector1);
+    setTextLocation('fixed-vector-2-text', fixedVector2);
+    setTextLocation('moving-vector-text', movingVector);
+    setTextLocation('det-text-container-3by3', averageVector([ fixedVector1, fixedVector2, movingVector ]));
+    document.getElementById('det-text-3by3').textContent = round(detValue, 2) + '';
 
     window.requestAnimationFrame(render);
   }
@@ -296,23 +360,24 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
--->
 </head>
 
 <body>
 
 <div class="container">
   <canvas id="canvas-2by2" width=500 height=250></canvas>
-  <div class="container-text" id="det-text-container">
+  <div class="container-text" id="det-text-container-2by2">
     \(\det\left[ \begin{matrix}
       a & b \\
       c & d
-    \end{matrix}\right] = \) <!-- number after equal sign is on the canvas -->
+    \end{matrix}\right] = \) <span id="det-text-2by2"></span>
   </div>
 </div>
 
 <p>
 On this page, \(\hat i\), \(\hat j\) and \(\hat k\) denote the standard basis vectors.
+If there is a vector named \( \vec v \), then \( v_x \) denotes the \(x\) component of that vector,
+and similarly for \( v_y \) and \( v_z \).
 <p>
 
 <p>
@@ -333,7 +398,6 @@ Then the determinant is
 </ul>
 </p>
 
-<!--
 <p>
 Starting with this geometric definition, it's possible to derive the usual formula
 $$
@@ -344,9 +408,27 @@ $$
 $$
 </p>
 
+<hr />
+
 <div class="container" id="container-3by3">
+<div class="container-text" id="fixed-vector-1-text">\(\vec a\)</div>
+<div class="container-text" id="fixed-vector-2-text">\(\vec b\)</div>
+<div class="container-text" id="moving-vector-text">\(\vec c\)</div>
+<div class="container-text" id="det-text-container-3by3">
+  \( \det\left[\begin{matrix}
+    a_x & a_y & a_z \\
+    b_x & b_y & b_z \\
+    c_x & c_y & c_z \\
+  \end{matrix}\right] = \)  <span id="det-text-3by3"></span>
 </div>
--->
+</div>
+
+This animation shows a geometric way to understand a \( 3 \times 3 \) determinant.
+The biggest difference to \( 2 \times 2 \) determinant is that
+the determinant is the volume of a <a href="https://en.wikipedia.org/wiki/Parallelepiped">parallelepiped</a>
+instead of area of a parallelogram.
+
+
 
 </body>
 </html>
