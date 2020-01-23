@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<!-- mathjax stuff -->
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<!-- three.js -->
+<script src="vendor-js/three.js"></script>
+
+<style>
+.container {
+  position: relative;
+}
+
+.container-text {
+  position: absolute;
+  color: white;
+  z-index: 123;
+}
+
+/*
+center in y direction, leave room for numbers in x direction
+ik this is weird but i had issues with doing this otherwise
+*/
+#det-text-container {
+  transform: translateX(-100%) translateY(-50%);
+}
+
+</style>
+
+<!-- 2 by 2 determinant -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const canvas = document.getElementById('canvas-2by2');
+  const context = canvas.getContext('2d');
+
+  context.textAlign = 'start';
+
+  const TRANSLATION = 120;
+  context.translate(TRANSLATION, TRANSLATION);
+
+  function vectorLength(vec) {
+    return Math.hypot(vec[0], vec[1]);
+  }
+
+  function addVectors(vec1, vec2) {
+    const [x1, y1] = vec1;
+    const [x2, y2] = vec2;
+    return [x1+x2, y1+y2];
+  }
+
+  function subtractVectors(vec1, vec2) {
+    return addVectors(vec1, vec2.map(x => -x));
+  }
+
+  function averageVector(vec1, vec2) {
+    return addVectors(vec1, vec2).map(x => x/2);
+  }
+
+  function unitVector(vec) {
+    return vec.map(x => x / Math.hypot(vec[0], vec[1]));
+  }
+
+  function rotateVector(vec, rotationAngle) {
+    const currentAngle = Math.atan2(vec[1], vec[0]);
+    const newAngle = currentAngle + rotationAngle;
+    const length = vectorLength(vec);
+    return [length*Math.cos(newAngle), length*Math.sin(newAngle)];
+  }
+
+  function createLinePath(start, end) {
+    const path = new Path2D();
+    path.moveTo(...start);
+    path.lineTo(...end);
+    return path
+  }
+
+  function addArrow(path, place, direction) {
+    const divideToNormalize = vectorLength(direction);
+    const arrowThingyVector = unitVector(direction).map(x => 10*x);
+
+    for (const angle of [ -Math.PI * 3/4, Math.PI * 3/4 ]) {
+      path.moveTo(...place);
+      path.lineTo(...addVectors(place, rotateVector(arrowThingyVector, angle)));
+    }
+  }
+
+  function createVectorPath(vec) {
+    const path = createLinePath([0, 0], vec);
+    addArrow(path, vec, vec);
+    return path;
+  }
+
+  function createParallelogramPath(vec1, vec2) {
+    const path = new Path2D();
+
+    path.moveTo(0, 0);
+    path.lineTo(...vec1);
+    path.lineTo(...addVectors(vec1, vec2));
+    path.lineTo(...vec2);
+    path.lineTo(0, 0);
+
+    return path;
+  }
+
+  function createArcArrow(vec1, vec2, radius) {
+    let angle1 = Math.atan2(vec1[1], vec1[0]);
+    let angle2 = Math.atan2(vec2[1], vec2[0]);
+    const arrowPlaceVector = [Math.cos(angle2), Math.sin(angle2)];
+    let rotateAmount;
+
+    if (angle1 > angle2) {
+      angle2 += 2*Math.PI;
+    }
+
+    // shortest possible arrow
+    if (angle2 - angle1 > Math.PI) {
+      [angle1, angle2] = [angle2, angle1];
+      rotateAmount = -Math.PI/2;
+    } else {
+      rotateAmount = Math.PI/2;
+    }
+
+    const path = new Path2D();
+    path.arc(0, 0, radius, angle1, angle2);
+    addArrow(path, arrowPlaceVector.map(x => x*radius), rotateVector(arrowPlaceVector, rotateAmount));
+    return path;
+  }
+
+  function det(vector1, vector2) {
+    const [a, b] = vector1;
+    const [c, d] = vector2;
+    return a*d - b*c;
+  }
+
+  function setTextLocation(elementId, vector) {
+    const div = document.getElementById(elementId);
+    div.style.left = (vector[0] + TRANSLATION) + 'px';
+    div.style.top = (vector[1] + TRANSLATION) + 'px';
+  }
+
+  function round(floatValue, howManyDecimals) {
+    const magicNumber = Math.pow(10, howManyDecimals);
+    return Math.round(floatValue * magicNumber) / magicNumber + '';
+  }
+
+  const fixedVector = [200, 0];
+
+  function drawAllTheThings() {
+    context.clearRect(-1000, -1000, 2000, 2000);
+
+    const spinner = rotateVector([100, 0], -(+new Date()) / 2e3);
+
+    // dot product is huge because pixel counts are big
+    // so scale it down to make it more user-friendly
+    // also need to flip sign because y axis upside down issue
+    const userFriendlyDetValue = -det(fixedVector, spinner) / 7000;
+
+    if (userFriendlyDetValue > 0) {
+      context.fillStyle = '#990';
+    } else {
+      context.fillStyle = '#339';
+    }
+    context.fill(createParallelogramPath(fixedVector, spinner));
+
+    context.stroke(createVectorPath(fixedVector));
+    context.stroke(createVectorPath(spinner));
+
+    context.strokeStyle = '#fff';
+    context.stroke(createArcArrow(fixedVector, spinner, 20));
+    context.strokeStyle = '#000';
+
+    context.fillStyle = '#000';
+    context.textBaseline = 'top';
+
+    context.fillText("  ai+bj", ...fixedVector);
+    context.fillText("  ci+dj", ...spinner);
+
+    context.fillStyle = '#fff';
+    context.textBaseline = 'middle';
+
+    context.fillText(' ' + round(userFriendlyDetValue, 2), ...averageVector(fixedVector, spinner));
+    setTextLocation('det-text-container', averageVector(fixedVector, spinner));
+ 
+    window.requestAnimationFrame(drawAllTheThings);
+  }
+
+  drawAllTheThings();
+});
+</script>
+
+<!-- 3 by 3 determinant -->
+
+<!--
+<script>
+const WIDTH = 500;
+const HEIGHT = 300;
+const CORNER_SIZE = 0.3;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const fixedVector = (new THREE.Vector3(0, 0, 5)).multiplyScalar(0.3);
+  const movingVector = (new THREE.Vector3(5, 0, 5)).multiplyScalar(0.2);
+
+  const scene = new THREE.Scene();
+
+  const camera = new THREE.PerspectiveCamera(14, WIDTH / HEIGHT, 1, 10000);
+  camera.position.set(10, 6, -10);
+  camera.lookAt(scene.position);
+  camera.updateMatrix();
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(WIDTH, HEIGHT);
+  document.getElementById('container-3by3').appendChild(renderer.domElement);
+
+  function drawArrow(endPoint, color) {
+    const direction = new THREE.Vector3();
+    direction.copy(endPoint);
+    direction.normalize();
+    scene.add(new THREE.ArrowHelper(direction, new THREE.Vector3(0,0,0), endPoint.length(), color, undefined, 0.15));
+  }
+
+  function draw90DegreeMark(vector1, vector2) {
+    // ==0 with floats doesn't do the right thing
+    const shouldBeAlmostZero = vector1.dot(vector2);
+    if (Math.abs(shouldBeAlmostZero) > 0.0000001) {
+      throw new Error("attempt to draw |_ symbol in a non-90-degree corner");
+    }
+
+    const startPoint = (new THREE.Vector3()).copy(vector1).setLength(CORNER_SIZE);
+    const endPoint   = (new THREE.Vector3()).copy(vector2).setLength(CORNER_SIZE);
+    const middlePoint = (new THREE.Vector3()).addVectors(startPoint, endPoint);
+
+    const geometry = new THREE.Geometry();
+    geometry.vertices.push(startPoint);
+    geometry.vertices.push(middlePoint);
+    geometry.vertices.push(endPoint);
+
+    scene.add(new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0xffffff })));
+  }
+
+  function drawParallelepiped(vector1, vector2, vector3) {
+    const parallelepipedGeometry = new THREE.BoxGeometry(1, 1, 1);
+    parallelepipedGeometry.vertices[0].y += 2;
+    /*parallelepipedGeometry.applyMatrix(new THREE.Matrix3().set(
+      vector1.x, vector2.x, vector3.x,
+      vector1.y, vector2.y, vector3.y,
+      vector1.z, vector2.z, vector3.z,
+    ));*/
+
+    scene.add(new THREE.Mesh(parallelepipedGeometry, new THREE.MeshBasicMaterial({
+      color: 0xff00ff,
+      //transparent: true,
+      //opacity: 0.7,
+      //side: THREE.DoubleSide,
+    })));
+  }
+
+  function setTextLocation(elementId, vector) {
+    // https://stackoverflow.com/a/27412386
+    const canvas = renderer.domElement;
+    const projectedVector = new THREE.Vector3().copy(vector).project(camera);
+    const x = 0.5*(1 + projectedVector.x)*canvas.width;
+    const y = 0.5*(1 - projectedVector.y)*canvas.height;
+
+    const div = document.getElementById(elementId);
+    div.style.left = x + 'px';
+    div.style.top = y + 'px';
+  }
+
+  function render() {
+    // clear everything
+    scene.children.map(object => object.id).forEach(id => scene.remove(scene.getObjectById(id)));
+
+    const crossProduct = (new THREE.Vector3()).copy(fixedVector).cross(movingVector);
+    drawArrow(fixedVector, 0x6666ff);
+    drawArrow(movingVector, 0xff0000);
+    drawArrow(crossProduct, 0xcc00cc);
+    drawParallelepiped(fixedVector, movingVector, (new THREE.Vector3()).copy(fixedVector).cross(movingVector));
+
+    movingVector.applyMatrix4(new THREE.Matrix4().makeRotationY(0.005));
+
+    renderer.render(scene, camera);
+
+    const parallelogramCenter = new THREE.Vector3().addVectors(fixedVector, movingVector).multiplyScalar(0.5);
+    //setTextLocation('fixed-vector-text', fixedVector);
+    //setTextLocation('moving-vector-text', movingVector);
+    //setTextLocation('cross-product-text', crossProduct);
+    //setTextLocation('parallelogram-text', parallelogramCenter);
+
+    window.requestAnimationFrame(render);
+  }
+
+  render();
+});
+
+</script>
+-->
+</head>
+
+<body>
+
+<div class="container">
+  <canvas id="canvas-2by2" width=500 height=250></canvas>
+  <div class="container-text" id="det-text-container">
+    \(\det\left[ \begin{matrix}
+      a & b \\
+      c & d
+    \end{matrix}\right] = \) <!-- number after equal sign is on the canvas -->
+  </div>
+</div>
+
+<p>
+On this page, \(\hat i\), \(\hat j\) and \(\hat k\) denote the standard basis vectors.
+<p>
+
+<p>
+The above animation shows a geometric way to understand a \( 2 \times 2 \) determinant.
+Draw the vectors corresponding to the first and second row of the determinant.
+Then draw a parallelogram with the vectors as sides.
+Now the determinant is plus or minus the area between the vectors.
+</p>
+
+<p>
+To figure out the sign of the determinant, draw an arc-shaped arrow
+from the vector representing the top row of the determinant to the other vector.
+Choose the direction of the arrow so that the arrow arc is as short as possible.
+Then the determinant is
+<ul>
+  <li>the area of the parallelogram (positive), if this arrow goes counterclockwise, and</li>
+  <li>minus the area of the parallelogram (negative), if this arrow goes clockwise.</li>
+</ul>
+</p>
+
+<!--
+<p>
+Starting with this geometric definition, it's possible to derive the usual formula
+$$
+\det\left[ \begin{matrix}
+  a & b \\
+  c & d
+\end{matrix}\right] = ad - bc.
+$$
+</p>
+
+<div class="container" id="container-3by3">
+</div>
+-->
+
+</body>
+</html>

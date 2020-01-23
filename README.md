@@ -3,3 +3,4 @@ Here's a list of them:
 
 - [Dot product](https://akuli.github.io/math-demos/dot-product.html)
 - [Cross product](https://akuli.github.io/math-demos/cross-product.html)
+- [Determinant](https://akuli.github.io/math-demos/determinant.html)
