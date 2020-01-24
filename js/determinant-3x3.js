@@ -17,18 +17,33 @@ document.addEventListener('DOMContentLoaded', () => {
   renderer.setSize(WIDTH, HEIGHT);
   document.getElementById('container-3x3').appendChild(renderer.domElement);
 
-  function drawParallelepiped(vector1, vector2, vector3) {
+  // this function is evil ikr
+  function darkenColor(color, howMuch) {
+    return (Math.round(((color & 0xff0000) >> 16)*howMuch) << 16 |
+            Math.round(((color & 0x00ff00) >> 8)*howMuch) << 8 |
+            Math.round(((color & 0x0000ff) >> 0)*howMuch) << 0);
+  }
+
+  function drawParallelepiped(vector1, vector2, vector3, color) {
     // faces
     const zero = new THREE.Vector3();
-    const color = 0xff00ff;
     const opa = 0.4;
 
-    scene.add(commonStuff.createParallelogram3(vector1, vector2, zero,    { color: color*1.0, opacity: opa }));
-    scene.add(commonStuff.createParallelogram3(vector1, vector3, zero,    { color: color*0.9, opacity: opa }));
-    scene.add(commonStuff.createParallelogram3(vector2, vector3, zero,    { color: color*0.8, opacity: opa }));
-    scene.add(commonStuff.createParallelogram3(vector1, vector2, vector3, { color: color*0.7, opacity: opa }));
-    scene.add(commonStuff.createParallelogram3(vector2, vector3, vector1, { color: color*0.6, opacity: opa }));
-    scene.add(commonStuff.createParallelogram3(vector3, vector1, vector2, { color: color*0.5, opacity: opa }));
+    function draw(vec1, vec2, vec3, brightness) {
+      scene.add(commonStuff.createParallelogram3(
+        vec1, vec2, vec3, {
+          color: darkenColor(color, brightness),
+          opacity: 0.4,
+        }
+      ));
+    }
+
+    draw(vector1, vector2, zero,    1.00);
+    draw(vector1, vector3, zero,    0.85);
+    draw(vector2, vector3, zero,    0.70);
+    draw(vector1, vector2, vector3, 0.55);
+    draw(vector2, vector3, vector1, 0.40);
+    draw(vector3, vector1, vector2, 0.25);
 
     var parallelogramGeometry = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(1,1,1));
 
@@ -49,21 +64,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // clear everything
     scene.children.map(object => object.id).forEach(id => scene.remove(scene.getObjectById(id)));
 
-    scene.add(commonStuff.createArrow3(fixedVector1, 0x6666ff));
-    scene.add(commonStuff.createArrow3(fixedVector2, 0xff0000));
-    scene.add(commonStuff.createArrow3(movingVector, 0x00cc00));
-    drawParallelepiped(fixedVector1, fixedVector2, movingVector);
-
-    movingVector.applyMatrix4(new THREE.Matrix4().makeRotationZ(0.005));
-
-    renderer.render(scene, camera);
-
     const detValue = (new THREE.Matrix3()).set(
       fixedVector1.x, fixedVector1.y, fixedVector1.z,
       fixedVector2.x, fixedVector2.y, fixedVector2.z,
       movingVector.x, movingVector.y, movingVector.z,
     ).determinant()
 
+    scene.add(commonStuff.createArrow3(fixedVector1, 0x6666ff));
+    scene.add(commonStuff.createArrow3(fixedVector2, 0xff0000));
+    scene.add(commonStuff.createArrow3(movingVector, 0x00cc00));
+    drawParallelepiped(
+      fixedVector1, fixedVector2, movingVector,
+      detValue > 0 ? 0x999900 : 0x3366ff,
+    );
+
+    movingVector.applyMatrix4(new THREE.Matrix4().makeRotationZ(0.005));
+
+    renderer.render(scene, camera);
 
     const centerVector = commonStuff.parallelepipedComVector(fixedVector1, fixedVector2, movingVector);
 
