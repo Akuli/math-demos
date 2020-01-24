@@ -60,6 +60,34 @@ document.addEventListener('DOMContentLoaded', () => {
     })));
   }
 
+  function addArrowBetweenVectors(vector1, vector2) {
+    const arcRadius = 0.6;
+    const arrowSize = 0.2;
+
+    const curveArray = [
+      new THREE.EllipseCurve(0, 0, 1, 1, 0, Math.PI/2, false, 0),
+      new THREE.LineCurve(new THREE.Vector3(0, 1, 0), new THREE.Vector3(arrowSize, 1 - arrowSize, 0)),
+      new THREE.LineCurve(new THREE.Vector3(0, 1, 0), new THREE.Vector3(arrowSize, 1 + arrowSize, 0)),
+    ];
+
+    for (const curve of curveArray) {
+      const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(50));
+      const crossProduct = (new THREE.Vector3()).copy(vector1).cross(vector2);
+
+      // this matrix makes the curve go to the right place unit square to vector1,vector2 parallelogram
+      // third unit vector to cross product (wouldn't matter as long as resulting matrix is invertible)
+      geometry.applyMatrix(new THREE.Matrix4().makeBasis(
+        new THREE.Vector3().copy(vector1).setLength(arcRadius),
+        new THREE.Vector3().copy(vector2).setLength(arcRadius),
+        new THREE.Vector3().copy(vector1).cross(vector2),   // makes resulting matrix invertible
+      ));
+
+      scene.add(new THREE.Line(geometry, new THREE.LineBasicMaterial({
+        color: 0xffffff,
+      })));
+    }
+  }
+
   function render() {
     // clear everything
     scene.children.map(object => object.id).forEach(id => scene.remove(scene.getObjectById(id)));
@@ -78,7 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
       detValue > 0 ? 0x999900 : 0x3366ff,
     );
 
-    movingVector.applyMatrix4(new THREE.Matrix4().makeRotationZ(0.005));
+    addArrowBetweenVectors(fixedVector1, fixedVector2);
+
+    movingVector.applyMatrix4(new THREE.Matrix4().makeRotationZ(-0.005));
 
     renderer.render(scene, camera);
 

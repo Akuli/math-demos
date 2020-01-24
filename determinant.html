@@ -68,8 +68,9 @@ $$
 \det\left[ \begin{matrix}
   a & b \\
   c & d
-\end{matrix}\right] = ad - bc.
+\end{matrix}\right] = ad - bc,
 $$
+where \( a,b,c,d \in \mathbb{R} \).
 </p>
 
 <hr />
@@ -80,9 +81,9 @@ $$
 <div id="moving-vector-text">\(\vec c\)</div>
 <div id="det-text-container-3x3">
   \( \det\left[\begin{matrix}
-    a_x & a_y & a_z \\
-    b_x & b_y & b_z \\
-    c_x & c_y & c_z \\
+    \color{lightblue}{a_x} & \color{lightblue}{a_y} & \color{lightblue}{a_z} \\
+    \color{red}{b_x} & \color{red}{b_y} & \color{red}{b_z} \\
+    \color{#0f0}{c_x} & \color{#0f0}{c_y} & \color{#0f0}{c_z} \\
   \end{matrix}\right] = \)  <span id="det-text-3x3"></span>
 </div>
 </div>
@@ -90,8 +91,26 @@ $$
 <p>
 This animation shows a geometric way to understand a \( 3 \times 3 \) determinant.
 The biggest difference to \( 2 \times 2 \) determinant is that
-the determinant is the volume of a <a href="https://en.wikipedia.org/wiki/Parallelepiped">parallelepiped</a>
+the determinant is plus or minus
+the volume of a <a href="https://en.wikipedia.org/wiki/Parallelepiped">parallelepiped</a>
 instead of area of a parallelogram.
+</p>
+
+<p>
+To figure out the sign of a \( 3 \times 3 \) determinant,
+draw an arrow from \( \vec a \) to \( \vec b \) (the white arrow in the animation).
+Then wrap all fingers of your right hand except thumb in the direction of the arrow.
+The determinant is
+<ul>
+  <li>the volume of the parallelepiped (positive),
+      if \( \vec c \) and your thumb point in the same direction, and</li>
+  <li>minus the volume of the parallelepiped (negative),
+      if \( \vec c \) and your thumb point in different directions.</li>
+</ul>
+<li>
+
+</li>
+If \( \vec c \) points in the direction of your thumb, then the determinant is 
 </p>
 
 <p>
