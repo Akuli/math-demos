@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTextLocation('fixed-vector-2-text', fixedVector2);
     setTextLocation('moving-vector-text', movingVector);
     setTextLocation('det-text-container-3by3', averageVector([ fixedVector1, fixedVector2, movingVector ]));
-    document.getElementById('det-text-3by3').textContent = round(detValue, 2) + '';
+    document.getElementById('det-text-3by3').textContent = round(detValue, 1) + '';
 
     window.requestAnimationFrame(render);
   }
@@ -374,7 +374,7 @@ then \(v_x\), \(v_y\) and \(v_z\) denote the x, y and z components of that vecto
 The above animation shows a geometric way to understand a \( 2 \times 2 \) determinant.
 Draw the vectors \(\vec a\) and \(\vec b\) corresponding to the first and second row of the determinant.
 Then draw a parallelogram with the vectors as sides.
-Now the determinant is plus or minus the area between the vectors.
+Now the determinant is plus or minus the area of the parallelogram.
 </p>
 
 <p>
