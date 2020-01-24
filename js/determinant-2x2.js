@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function drawAllTheThings() {
     context.clearRect(-1000, -1000, 2000, 2000);
-    spinningVector.applyMatrix3(new THREE.Matrix3().rotate(0.01));
+    spinningVector.applyMatrix3(new THREE.Matrix3().rotate(0.007));
 
     // dot product is huge because pixel counts are big
     // so scale it down to make it more user-friendly
