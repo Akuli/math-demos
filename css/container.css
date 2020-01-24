@@ -1,0 +1,9 @@
+.container {
+  position: relative;
+}
+
+.container > div {
+    position: absolute;
+    color: white;
+    z-index: 123;
+}

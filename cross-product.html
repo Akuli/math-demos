@@ -7,154 +7,29 @@
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-<!-- three.js -->
-<script src="vendor-js/three.js"></script>
+<script src="js/vendor/three.js"></script>
+<script src="js/common.js"></script>
+<script src="js/cross-product.js"></script>
+
+<link rel="stylesheet" type="text/css" href="css/container.css">
 
 <style>
-#container {
-  position: relative;
-}
-
-.container-text {
-  position: absolute;
-  color: white;
-  z-index: 123;
-}
-
-/* weird way to get it centered */
-#parallelogram-text {
-  transform: translateX(-50%) translateY(-50%);
-}
+/* centering */
+#parallelogram-text { transform: translateX(-50%) translateY(-50%); }
 
 /* avoid overlap with arrow end */
-#fixed-vector-text {
-  transform: translateY(-100%);
-}
-#cross-product-text {
-  transform: translateX(30%);
-}
+#fixed-vector-text { transform: translateY(-100%); }
+#cross-product-text { transform: translateX(30%); }
 </style>
 
-<script>
-const WIDTH = 500;
-const HEIGHT = 300;
-const CORNER_SIZE = 0.3;
-
-document.addEventListener('DOMContentLoaded', () => {
-  const fixedVector = (new THREE.Vector3(0, 0, 5)).multiplyScalar(0.3);
-  const movingVector = (new THREE.Vector3(5, 0, 5)).multiplyScalar(0.2);
-
-  const scene = new THREE.Scene();
-
-  const camera = new THREE.PerspectiveCamera(14, WIDTH / HEIGHT, 1, 10000);
-  camera.position.set(10, 6, -10);
-  camera.lookAt(scene.position);
-  camera.updateMatrix();
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(WIDTH, HEIGHT);
-  document.getElementById('container').appendChild(renderer.domElement);
-
-  function drawArrow(endPoint, color) {
-    const direction = new THREE.Vector3();
-    direction.copy(endPoint);
-    direction.normalize();
-    scene.add(new THREE.ArrowHelper(direction, new THREE.Vector3(0,0,0), endPoint.length(), color, undefined, 0.15));
-  }
-
-  function draw90DegreeMark(vector1, vector2) {
-    // ==0 with floats doesn't do the right thing
-    const shouldBeAlmostZero = vector1.dot(vector2);
-    if (Math.abs(shouldBeAlmostZero) > 0.0000001) {
-      throw new Error("attempt to draw |_ symbol in a non-90-degree corner");
-    }
-
-    const startPoint = (new THREE.Vector3()).copy(vector1).setLength(CORNER_SIZE);
-    const endPoint   = (new THREE.Vector3()).copy(vector2).setLength(CORNER_SIZE);
-    const middlePoint = (new THREE.Vector3()).addVectors(startPoint, endPoint);
-
-    const geometry = new THREE.Geometry();
-    geometry.vertices.push(startPoint);
-    geometry.vertices.push(middlePoint);
-    geometry.vertices.push(endPoint);
-
-    scene.add(new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0xffffff })));
-  }
-
-  function drawParallelogram(vector1, vector2) {
-    const crossProduct = (new THREE.Vector3()).copy(vector1).cross(vector2);
-
-    var unitSquare = new THREE.Shape();
-    unitSquare.moveTo(0, 0);
-    unitSquare.lineTo(1, 0);
-    unitSquare.lineTo(1, 1);
-    unitSquare.lineTo(0, 1);
-    unitSquare.lineTo(0, 0);
-
-    var parallelogramGeometry = new THREE.ShapeGeometry(unitSquare);
-
-    // this matrix maps unit square to vector1,vector2 parallelogram
-    // third unit vector to cross product (wouldn't matter as long as resulting matrix is invertible)
-    parallelogramGeometry.applyMatrix(
-    new THREE.Matrix4().makeBasis(vector1, vector2, crossProduct));
-
-    scene.add(new THREE.Mesh(parallelogramGeometry, new THREE.MeshBasicMaterial({
-    color: 0xff00ff,
-    transparent: true,
-    opacity: 0.7,
-    side: THREE.DoubleSide,
-    })));
-  }
-
-  function setTextLocation(elementId, vector) {
-    // https://stackoverflow.com/a/27412386
-    const canvas = renderer.domElement;
-    const newVector = new THREE.Vector3().copy(vector).project(camera);
-    const x = 0.5*(1 + newVector.x)*canvas.width;
-    const y = 0.5*(1 - newVector.y)*canvas.height;
-
-    const div = document.getElementById(elementId);
-    div.style.left = x + 'px';
-    div.style.top = y + 'px';
-  }
-
-  function render() {
-    // clear everything
-    scene.children.map(object => object.id).forEach(id => scene.remove(scene.getObjectById(id)));
-
-    const crossProduct = (new THREE.Vector3()).copy(fixedVector).cross(movingVector);
-    drawArrow(fixedVector, 0x6666ff);
-    drawArrow(movingVector, 0xff0000);
-    drawArrow(crossProduct, 0xcc00cc);
-    drawParallelogram(fixedVector, movingVector);
-    draw90DegreeMark(fixedVector, crossProduct);
-    draw90DegreeMark(movingVector, crossProduct);
-
-    movingVector.applyMatrix4(new THREE.Matrix4().makeRotationY(0.005));
-
-    renderer.render(scene, camera);
-
-    const parallelogramCenter = new THREE.Vector3().addVectors(fixedVector, movingVector).multiplyScalar(0.5);
-    setTextLocation('fixed-vector-text', fixedVector);
-    setTextLocation('moving-vector-text', movingVector);
-    setTextLocation('cross-product-text', crossProduct);
-    setTextLocation('parallelogram-text', parallelogramCenter);
-
-    window.requestAnimationFrame(render);
-  }
-
-  render();
-});
-
-</script>
 </head>
 
 <body>
-<div id="container">
-<div class="container-text" id="fixed-vector-text">\(\vec a\)</div>
-<div class="container-text" id="moving-vector-text">\(\vec b\)</div>
-<div class="container-text" id="cross-product-text">\(\vec a \times \vec b\)</div>
-<div class="container-text" id="parallelogram-text">\(|\vec a \times \vec b|\)</div>
+<div id="container" class="container">
+<div id="fixed-vector-text">\(\vec a\)</div>
+<div id="moving-vector-text">\(\vec b\)</div>
+<div id="cross-product-text">\(\vec a \times \vec b\)</div>
+<div id="parallelogram-text">\(|\vec a \times \vec b|\)</div>
 </div>
 
 <p>
@@ -200,6 +75,28 @@ $$
 (\hat i \times \hat i) \times \hat j = \vec 0 \times \hat j = \vec 0.
 $$
 </p>
+
+By combining this geometrical definition of cross product with
+<a href="dot-product.html">dot products</a> and <a href="determinant.html">determinants</a>,
+it's possible to notice that
+$$
+\vec a \cdot (\vec b \times \vec c) = \det \left[ \begin{matrix}
+  a_x & a_y & a_z \\
+  b_x & b_y & b_z \\
+  c_x & c_y & c_z
+\end{matrix} \right],
+$$
+where \(a_x\), \(a_y\) and \(a_z\) denote the components of \(\vec a\), and similarly for other vectors.
+This leads to
+$$
+\vec b \times \vec c = \det \left[ \begin{matrix}
+  \hat i & \hat j & \hat k \\
+  b_x & b_y & b_z \\
+  c_x & c_y & c_z
+\end{matrix} \right],
+$$
+which is the usual way to calculate a cross product.
+Here the determinant must be calculated as if \(\hat i\), \(\hat j\) and \(\hat k\) were numbers.
 
 </body>
 </html>

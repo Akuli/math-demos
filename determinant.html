@@ -6,362 +6,36 @@
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-<!-- three.js -->
-<script src="vendor-js/three.js"></script>
+<script src="js/vendor/three.js"></script>
+<script src="js/common.js"></script>
+<script src="js/determinant-2x2.js"></script>
+<script src="js/determinant-3x3.js"></script>
+
+<link rel="stylesheet" type="text/css" href="css/container.css">
 
 <style>
-.container {
-  position: relative;
-}
-
-.container-text {
-  position: absolute;
-  color: white;
-  z-index: 123;
-}
-
 /* making these fixed size gets rid of weird issues */
-#det-text-container-2by2 { width: 10em; }
-#det-text-container-3by3 { width: 15em; }
+#det-text-container-2x2 { width: 10em; }
+#det-text-container-3x3 { width: 15em; }
 
 /* didn't want to figure out how to make stuff off-centered */
-#container-3by3 {
-  transform: translateX(-300px);
-}
+#container-3x3 { transform: translateX(-300px); }
 
-/*
-center in y direction, leave room for numbers in x direction
-ik this is weird but i had issues with doing this otherwise
-*/
-#det-text-container-2by2 {
-  transform: translateX(-50%) translateY(-50%);
-}
-
+/* centering */
+#det-text-container-2x2 { transform: translateX(-50%) translateY(-50%); }
 </style>
 
-<!-- 2 by 2 determinant -->
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const canvas = document.getElementById('canvas-2by2');
-  const context = canvas.getContext('2d');
-
-  context.textAlign = 'start';
-
-  const TRANSLATION = 120;
-  context.translate(TRANSLATION, TRANSLATION);
-
-  function vectorLength(vec) {
-    return Math.hypot(vec[0], vec[1]);
-  }
-
-  function addVectors(vec1, vec2) {
-    const [x1, y1] = vec1;
-    const [x2, y2] = vec2;
-    return [x1+x2, y1+y2];
-  }
-
-  function subtractVectors(vec1, vec2) {
-    return addVectors(vec1, vec2.map(x => -x));
-  }
-
-  function averageVector(vec1, vec2) {
-    return addVectors(vec1, vec2).map(x => x/2);
-  }
-
-  function unitVector(vec) {
-    return vec.map(x => x / Math.hypot(vec[0], vec[1]));
-  }
-
-  function rotateVector(vec, rotationAngle) {
-    const currentAngle = Math.atan2(vec[1], vec[0]);
-    const newAngle = currentAngle + rotationAngle;
-    const length = vectorLength(vec);
-    return [length*Math.cos(newAngle), length*Math.sin(newAngle)];
-  }
-
-  function createLinePath(start, end) {
-    const path = new Path2D();
-    path.moveTo(...start);
-    path.lineTo(...end);
-    return path
-  }
-
-  function addArrow(path, place, direction) {
-    const divideToNormalize = vectorLength(direction);
-    const arrowThingyVector = unitVector(direction).map(x => 10*x);
-
-    for (const angle of [ -Math.PI * 3/4, Math.PI * 3/4 ]) {
-      path.moveTo(...place);
-      path.lineTo(...addVectors(place, rotateVector(arrowThingyVector, angle)));
-    }
-  }
-
-  function createVectorPath(vec) {
-    const path = createLinePath([0, 0], vec);
-    addArrow(path, vec, vec);
-    return path;
-  }
-
-  function createParallelogramPath(vec1, vec2) {
-    const path = new Path2D();
-
-    path.moveTo(0, 0);
-    path.lineTo(...vec1);
-    path.lineTo(...addVectors(vec1, vec2));
-    path.lineTo(...vec2);
-    path.lineTo(0, 0);
-
-    return path;
-  }
-
-  function createArcArrow(vec1, vec2, radius) {
-    let angle1 = Math.atan2(vec1[1], vec1[0]);
-    let angle2 = Math.atan2(vec2[1], vec2[0]);
-    const arrowPlaceVector = [Math.cos(angle2), Math.sin(angle2)];
-    let rotateAmount;
-
-    if (angle1 > angle2) {
-      angle2 += 2*Math.PI;
-    }
-
-    // shortest possible arrow
-    if (angle2 - angle1 > Math.PI) {
-      [angle1, angle2] = [angle2, angle1];
-      rotateAmount = -Math.PI/2;
-    } else {
-      rotateAmount = Math.PI/2;
-    }
-
-    const path = new Path2D();
-    path.arc(0, 0, radius, angle1, angle2);
-    addArrow(path, arrowPlaceVector.map(x => x*radius), rotateVector(arrowPlaceVector, rotateAmount));
-    return path;
-  }
-
-  function det(vector1, vector2) {
-    const [a, b] = vector1;
-    const [c, d] = vector2;
-    return a*d - b*c;
-  }
-
-  function setTextLocation(elementId, vector) {
-    const div = document.getElementById(elementId);
-    div.style.left = (vector[0] + TRANSLATION) + 'px';
-    div.style.top = (vector[1] + TRANSLATION) + 'px';
-  }
-
-  function round(floatValue, howManyDecimals) {
-    const magicNumber = Math.pow(10, howManyDecimals);
-    return Math.round(floatValue * magicNumber) / magicNumber + '';
-  }
-
-  const fixedVector = [200, 0];
-
-  function drawAllTheThings() {
-    context.clearRect(-1000, -1000, 2000, 2000);
-
-    const spinner = rotateVector([100, 0], -(+new Date()) / 2e3);
-
-    // dot product is huge because pixel counts are big
-    // so scale it down to make it more user-friendly
-    // also need to flip sign because y axis upside down issue
-    const userFriendlyDetValue = -det(fixedVector, spinner) / 7000;
-
-    if (userFriendlyDetValue > 0) {
-      context.fillStyle = '#990';
-    } else {
-      context.fillStyle = '#339';
-    }
-    context.fill(createParallelogramPath(fixedVector, spinner));
-
-    context.stroke(createVectorPath(fixedVector));
-    context.stroke(createVectorPath(spinner));
-
-    context.strokeStyle = '#fff';
-    context.stroke(createArcArrow(fixedVector, spinner, 20));
-    context.strokeStyle = '#000';
-
-    context.fillStyle = '#000';
-    context.textBaseline = 'top';
-
-    context.fillText("  a", ...fixedVector);
-    context.fillText("  b", ...spinner);
-
-    setTextLocation('det-text-container-2by2', averageVector(fixedVector, spinner));
-    document.getElementById('det-text-2by2').textContent = round(userFriendlyDetValue, 2);
- 
-    window.requestAnimationFrame(drawAllTheThings);
-  }
-
-  drawAllTheThings();
-});
-</script>
-
-<!-- 3 by 3 determinant -->
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const WIDTH = 1000;
-  const HEIGHT = 500;
-
-  const fixedVector1 = (new THREE.Vector3(-1.5, 0, -3)).multiplyScalar(1);   // blue
-  const fixedVector2 = (new THREE.Vector3(-1, 0, 1)).multiplyScalar(2);   // red
-  const movingVector = (new THREE.Vector3(0, 1, 0)).multiplyScalar(1.5);
-
-  const scene = new THREE.Scene();
-
-  const camera = new THREE.PerspectiveCamera(14, WIDTH / HEIGHT, 1, 10000);
-  camera.position.set(0, 5, -20);
-  camera.lookAt(scene.position);
-  camera.updateMatrix();
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(WIDTH, HEIGHT);
-  document.getElementById('container-3by3').appendChild(renderer.domElement);
-
-  function drawArrow(endPoint, color) {
-    const direction = new THREE.Vector3();
-    direction.copy(endPoint);
-    direction.normalize();
-    scene.add(new THREE.ArrowHelper(direction, new THREE.Vector3(0,0,0), endPoint.length(), color, undefined, 0.15));
-  }
-
-  function drawParallelogram(vector1, vector2, offsetVector, color) {
-    const crossProduct = (new THREE.Vector3()).copy(vector1).cross(vector2);
-
-    var unitSquare = new THREE.Shape();
-    unitSquare.moveTo(0, 0);
-    unitSquare.lineTo(1, 0);
-    unitSquare.lineTo(1, 1);
-    unitSquare.lineTo(0, 1);
-    unitSquare.lineTo(0, 0);
-
-    var parallelogramGeometry = new THREE.ShapeGeometry(unitSquare);
-
-    // this matrix maps unit square to vector1,vector2 parallelogram
-    // third unit vector to cross product (wouldn't matter as long as resulting matrix is invertible)
-    parallelogramGeometry.applyMatrix(new THREE.Matrix4().makeBasis(vector1, vector2, crossProduct));
-
-    // move it to the right place
-    parallelogramGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(
-      offsetVector.x, offsetVector.y, offsetVector.z));
-
-    scene.add(new THREE.Mesh(parallelogramGeometry, new THREE.MeshBasicMaterial({
-      color: color,
-      transparent: true,
-      opacity: 0.4,
-      side: THREE.DoubleSide,
-    })));
-  }
-
-  function drawOrbitCircle(radius) {
-    const unitCircle = new THREE.Shape();
-    unitCircle.arc(0, 0, radius, 0, 2*Math.PI);
-    console.log(unitCircle);
-
-    const orbitGeometry = new THREE.ShapeGeometry(unitCircle, 100);
-    scene.add(new THREE.LineSegments(orbitGeometry,
-      new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-    })));
-  }
-
-  function drawParallelepiped(vector1, vector2, vector3) {
-    // faces
-    const zero = new THREE.Vector3();
-    const color = 0xff00ff;
-    drawParallelogram(vector1, vector2, zero, color);
-    drawParallelogram(vector1, vector3, zero, color*0.9);
-    drawParallelogram(vector2, vector3, zero, color*0.8);
-    drawParallelogram(vector1, vector2, vector3, color*0.7);
-    drawParallelogram(vector2, vector3, vector1, color*0.6);
-    drawParallelogram(vector3, vector1, vector2, color*0.5);
-
-    var parallelogramGeometry = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(1,1,1));
-
-    // move it to the right place
-    parallelogramGeometry.applyMatrix(new THREE.Matrix4().makeTranslation(0.5,0.5,0.5));
-
-    // this matrix maps unit square to vector1,vector2 parallelogram
-    // third unit vector to cross product (wouldn't matter as long as resulting matrix is invertible)
-    parallelogramGeometry.applyMatrix(new THREE.Matrix4().makeBasis(vector1, vector2, vector3));
-    
-    scene.add(new THREE.LineSegments(parallelogramGeometry,
-      new THREE.MeshBasicMaterial({
-      color: 0x000000,
-    })));
-
-  }
-
-  function setTextLocation(elementId, vector) {
-    // https://stackoverflow.com/a/27412386
-    const canvas = renderer.domElement;
-    const projectedVector = new THREE.Vector3().copy(vector).project(camera);
-    const x = 0.5*(1 + projectedVector.x)*canvas.width;
-    const y = 0.5*(1 - projectedVector.y)*canvas.height;
-
-    const div = document.getElementById(elementId);
-    div.style.left = x + 'px';
-    div.style.top = y + 'px';
-  }
-
-  function averageVector(vectorArray) {
-    const result = new THREE.Vector3();
-    for (const v of vectorArray) {
-      result.add(v);
-    }
-    return result.divideScalar(vectorArray.length);
-  }
-
-  function round(floatValue, howManyDecimals) {
-    const magicNumber = Math.pow(10, howManyDecimals);
-    return Math.round(floatValue * magicNumber) / magicNumber + '';
-  }
-
-  function render() {
-    // clear everything
-    scene.children.map(object => object.id).forEach(id => scene.remove(scene.getObjectById(id)));
-
-    drawArrow(fixedVector1, 0x6666ff);
-    drawArrow(fixedVector2, 0xff0000);
-    drawArrow(movingVector, 0x00cc00);
-    drawParallelepiped(fixedVector1, fixedVector2, movingVector);
-    //drawOrbitCircle(movingVector.length());
-
-    movingVector.applyMatrix4(new THREE.Matrix4().makeRotationZ(0.005));
-
-    renderer.render(scene, camera);
-
-    const detValue = (new THREE.Matrix3()).set(
-      fixedVector1.x, fixedVector1.y, fixedVector1.z,
-      fixedVector2.x, fixedVector2.y, fixedVector2.z,
-      movingVector.x, movingVector.y, movingVector.z,
-    ).determinant()
-
-    setTextLocation('fixed-vector-1-text', fixedVector1);
-    setTextLocation('fixed-vector-2-text', fixedVector2);
-    setTextLocation('moving-vector-text', movingVector);
-    setTextLocation('det-text-container-3by3', averageVector([ fixedVector1, fixedVector2, movingVector ]));
-    document.getElementById('det-text-3by3').textContent = round(detValue, 1) + '';
-
-    window.requestAnimationFrame(render);
-  }
-
-  render();
-});
-
-</script>
 </head>
 
 <body>
 
 <div class="container">
-  <canvas id="canvas-2by2" width=500 height=250></canvas>
-  <div class="container-text" id="det-text-container-2by2">
+  <canvas id="canvas-2x2" width=500 height=250></canvas>
+  <div id="det-text-container-2x2">
     \(\det\left[ \begin{matrix}
       a_x & a_y \\
       b_x & b_y
-    \end{matrix}\right] = \) <span id="det-text-2by2"></span>
+    \end{matrix}\right] = \) <span id="det-text-2x2"></span>
   </div>
 </div>
 
@@ -400,25 +74,39 @@ $$
 
 <hr />
 
-<div class="container" id="container-3by3">
-<div class="container-text" id="fixed-vector-1-text">\(\vec a\)</div>
-<div class="container-text" id="fixed-vector-2-text">\(\vec b\)</div>
-<div class="container-text" id="moving-vector-text">\(\vec c\)</div>
-<div class="container-text" id="det-text-container-3by3">
+<div class="container" id="container-3x3">
+<div id="fixed-vector-1-text">\(\vec a\)</div>
+<div id="fixed-vector-2-text">\(\vec b\)</div>
+<div id="moving-vector-text">\(\vec c\)</div>
+<div id="det-text-container-3x3">
   \( \det\left[\begin{matrix}
     a_x & a_y & a_z \\
     b_x & b_y & b_z \\
     c_x & c_y & c_z \\
-  \end{matrix}\right] = \)  <span id="det-text-3by3"></span>
+  \end{matrix}\right] = \)  <span id="det-text-3x3"></span>
 </div>
 </div>
 
+<p>
 This animation shows a geometric way to understand a \( 3 \times 3 \) determinant.
 The biggest difference to \( 2 \times 2 \) determinant is that
 the determinant is the volume of a <a href="https://en.wikipedia.org/wiki/Parallelepiped">parallelepiped</a>
 instead of area of a parallelogram.
+</p>
 
-
+<p>
+From this definition, it's possible to derive the "subdeterminant formula"
+$$
+\det\left[\begin{matrix}
+  a_x & a_y & a_z \\
+  b_x & b_y & b_z \\
+  c_x & c_y & c_z \\
+\end{matrix}\right]
+= a_x \det\left[\begin{matrix} b_y&b_z \\ c_y&c_z \end{matrix}\right]
+- a_y \det\left[\begin{matrix} b_x&b_z \\ c_x&c_z \end{matrix}\right]
++ a_z \det\left[\begin{matrix} b_x&b_y \\ c_x&c_y \end{matrix}\right].
+$$
+</p>
 
 </body>
 </html>
